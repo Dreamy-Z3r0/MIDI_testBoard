@@ -1,11 +1,29 @@
-uint8_t startButton = 3;
+#define A2_DIR  PD5
+#define A2_STEP PD6
+#define A2_EN   PD7
+#define A1_DIR  PB0
+#define A1_STEP PB1
+#define A1_EN   PB2
+
+#define A1_STEP_HIGH  PORTB |=  (1<< A1_STEP) 
+#define A1_STEP_LOW   PORTB &= ~(1<< A1_STEP)
+
+#define A2_STEP_HIGH  PORTD |= (1<< A2_STEP)
+#define A2_STEP_HIGH  PORTD &= ~(1<< A2_STEP)
+
+uint8_t startButton = D3; /& use INT1
 bool running = false;
 float lastPos[2] = {1,1};
 
 void setup()
 {
-    pinMode(startButton, INPUT);
-    attachInterrupt(digitalPinToInterrupt(startButton),startService,RISING);
+    DDRD &= ~(1<< startButton);
+    // Rising edge of INT1 generates interrupt
+    EICRA |= (1<<ISC11);
+    EICRA |= (1<<ISC10;
+    // Enable interrrupts for INT1
+    EIMSK |= (1<< INT1); 
+    
     get_lastPosition();
     moveTo(0,0, lastPos[0], lastPos[2]);
 }
@@ -19,8 +37,7 @@ void loop()
     attachInterrupt(digitalPinToInterrupt(startButton),startService,RISING);
   }
 }
-
-void startService()
+ISR(INT1_vect)
 {
   detachInterrupt(digitalPinToInterrupt(startButton));
   running = true;
