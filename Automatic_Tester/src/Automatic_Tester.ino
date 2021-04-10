@@ -13,6 +13,9 @@
 #define A2_STEP_HIGH  PORTD |= (1<< A2_STEP)
 #define A2_STEP_HIGH  PORTD &= ~(1<< A2_STEP)
 
+unsigned int REMAINING_X_STEPS = 0;
+unsigned int REMAINING_Y_STEPS = 0;
+
 uint8_t startButton = 3; // use INT1
 bool running = false;
 float lastPos[2] = {1,1};
@@ -159,6 +162,29 @@ ISR(TIMER1_OVF_vect)
   bool CHANNEL_A = true,
        CHANNEL_B = true;
   /* Routine to check if any motor stops or runs */
+  if ((REMAINING_X_STEPS == 0) && (REMAINING_Y_STEPS == 0))   // Neither motor on x-axis nor motor y-axis has any more steps to run.
+  {
+    CHANNEL_A = false;
+    CHANNEL_B = false;
+  }
+  else if ((REMAINING_X_STEPS == 0) ^ (REMAINING_Y_STEPS == 0))   // Either motor on x-axis or motor y-axis stops.
+  {
+    if (REMAINING_X_STEPS == 0)   // Motor on x-axis stops
+    {
+      CHANNEL_A = false;
+      REMAINING_Y_STEPS -= 1;
+    }
+    else  // Motor on y-axis stops.
+    {
+      CHANNEL_B = false;
+      REMAINING_X_STEPS -= 1;
+    }
+  }
+  else  // Both motors keep running.
+  {
+    REMAINING_X_STEPS -= 1;
+    REMAINING_Y_STEPS -= 1;
+  }
 
   /* Routine to run or stop motors */
   if (CHANNEL_A || CHANNEL_B)   // At least one motor keeps running
