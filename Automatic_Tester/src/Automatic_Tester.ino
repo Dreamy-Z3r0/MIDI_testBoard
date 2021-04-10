@@ -163,12 +163,14 @@ ISR(TIMER1_OVF_vect)
   /* Routine to run or stop motors */
   if (CHANNEL_A || CHANNEL_B)   // At least one motor keeps running
   {
+    // Update timer parameters as required by the mode of timer (described in the datasheet)
     if (CHANNEL_A) OCR1A = MAX_COUNTER_VALUE_TIM1;
     if (CHANNEL_B) OCR1B = MAX_COUNTER_VALUE_TIM1;
 
     ICR1 = COMPARE_MATCH_VALUE_TIM1;
     TCNT1 = BASE_COUNTER_VALUE_TIM1;
 
+    // Keep the enabled motor running
     PWM_StartStop(1, CHANNEL_A, CHANNEL_B);
   }
   else    // Both motors stop
