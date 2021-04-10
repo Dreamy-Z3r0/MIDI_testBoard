@@ -34,7 +34,7 @@ void setup()
     DDRD &= ~(1<< startButton);
     // Rising edge of INT1 generates interrupt
     EICRA |= (1<<ISC11);
-    EICRA |= (1<<ISC10;
+    EICRA |= (1<<ISC10);
     // Enable interrrupts for INT1
     EIMSK |= (1<< INT1); 
     noInterrupts();
