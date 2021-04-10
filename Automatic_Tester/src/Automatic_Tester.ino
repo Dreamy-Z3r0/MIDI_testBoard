@@ -13,6 +13,9 @@
 #define A2_STEP_HIGH  PORTD |= (1<< A2_STEP)
 #define A2_STEP_HIGH  PORTD &= ~(1<< A2_STEP)
 
+double STEPPER_PWM_PERIOD = 2;  // milliseconds
+double   STEPPER_PWM_DUTY = 75; // %  
+
 unsigned int REMAINING_X_STEPS = 0;
 unsigned int REMAINING_Y_STEPS = 0;
 
