@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name Automatic-Presser-rescue)(type Legacy)(uri "${KIPRJMOD}/Automatic Presser-rescue.lib")(options "")(descr ""))
+)

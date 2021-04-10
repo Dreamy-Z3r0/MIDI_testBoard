@@ -1,3 +1,5 @@
 (sym_lib_table
   (lib (name Teensy)(type Legacy)(uri "D:/Thesis/Teensy Libraries/teensy_library-master/teensy.lib")(options "")(descr ""))
+  (lib (name Motherboard-Schematics-rescue)(type Legacy)(uri "${KIPRJMOD}/Motherboard Schematics-rescue.lib")(options "")(descr ""))
+  (lib (name Motherboard-Schematics-Final-rescue)(type Legacy)(uri "${KIPRJMOD}/Motherboard Schematics Final-rescue.lib")(options "")(descr ""))
 )

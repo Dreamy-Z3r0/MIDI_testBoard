@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 uint8_t startButton = 3;
 bool running = false;
 float lastPos[2] = {1,1};
