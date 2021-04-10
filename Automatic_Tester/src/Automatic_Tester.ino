@@ -99,12 +99,14 @@ void save_lastPosition()
 const uint32_t MAX_COUNTER_VALUE_TIM1 = 65535;
 uint32_t COMPARE_MATCH_VALUE_TIM1, BASE_COUNTER_VALUE_TIM1;
 
-void Initialization(uint8_t TIMER_ID, double PERIOD_MS)    // Called once at boot, or whenever user wants to change control signal.
+void Initialization(uint8_t TIMER_ID, double PERIOD_MS, double DUTY_CYCLE_MS)    // Called once at boot, or whenever user wants to change control signal.
 {
   double PERIOD = PERIOD_MS / 1000.0;
+  double   DUTY = DUTY_CYCLE_MS / PERIOD_MS;
+
   if (1 == TIMER_ID)  // Timer 1 in use
   {
-    TIMER_COUNTER_COMPARE_VALUE_UPDATE(TIMER_ID, PERIOD);
+    TIMER_COUNTER_COMPARE_VALUE_UPDATE(TIMER_ID, PERIOD, DUTY);
 
     // Set initial value for counter limit and counter compare match value
     OCR1A = MAX_COUNTER_VALUE_TIM1;
@@ -148,12 +150,12 @@ void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Calle
   }
 }
 
-void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, double PERIOD)
+void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, double PERIOD, double DUTY)
 {
   if (1 == TIMER_ID)  // Timer 1 in use
   {
     BASE_COUNTER_VALUE_TIM1 = 65536 - (uint32_t)(PERIOD * 250000.0);
-    COMPARE_MATCH_VALUE_TIM1 = (uint32_t)(PERIOD * 62500.0) - 1 + BASE_COUNTER_VALUE_TIM1;
+    COMPARE_MATCH_VALUE_TIM1 = (uint32_t)(PERIOD * (1 - DUTY) * 250000.0) - 1 + BASE_COUNTER_VALUE_TIM1;
   }
 }
 
