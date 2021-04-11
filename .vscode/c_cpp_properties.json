@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:\\Users\\Z3r0\\sketchbook\\libraries",
+                "C:\\Users\\trung\\OneDrive\\Documents\\Arduino\\libraries",
+                "C:\\Program Files (x86)\\Arduino\\hardware",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr",
                 "C:/Program Files (x86)/Arduino/hardware/arduino/avr/firmwares/wifishield/wifiHD/src/SOFTWARE_FRAMEWORK/BOARDS/ARDUINO"
             ],

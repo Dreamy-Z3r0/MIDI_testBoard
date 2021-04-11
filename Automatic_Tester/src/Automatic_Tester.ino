@@ -22,6 +22,12 @@ unsigned int REMAINING_Y_STEPS = 0;
 uint8_t startButton = 3; // use INT1
 bool running = false;
 float lastPos[2] = {1,1};
+const float positioning_Array[4][4][2] = {
+    { {0,  0}, {38,  0}, {76,  0}, {114,  0} },
+    { {0, 38}, {38, 38}, {76, 38}, {114, 38} },
+    { {0, 76}, {38, 76}, {76, 76}, {114, 76} },
+    { {0,114}, {38,114}, {76,114}, {114,114} }
+};
 
 void setup()
 {
