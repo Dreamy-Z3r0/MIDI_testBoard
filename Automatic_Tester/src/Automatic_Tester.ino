@@ -1,5 +1,8 @@
 #include <Arduino.h>
 
+#define A1_MOTOR PORTB
+#define A2_MOTOR PORTD
+
 #define A2_DIR  PORTD5
 #define A2_STEP PORTD6
 #define A2_EN   PORTD7
@@ -55,14 +58,16 @@ void setup()
     DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
 
     //Clear Enable pin for A1 and A2
-    PORTD &= ~(1 << A2_EN);
-    PORTB &= ~(1 << A1_EN);
+    A2_MOTOR &= ~(1 << A2_EN);
+    A1_MOTOR &= ~(1 << A1_EN);
 
     //Set startButton as nnput
     pinMode(startButton, INPUT);
 
     // Enable interrrupts for INT1
     attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
+
+    Initialization(1, 10, 7.5);
 }
 
 void loop()
@@ -95,7 +100,6 @@ void loop()
   {
     running = false;
     run();
-    attachInterrupt(digitalPinToInterrupt(startButton),startService,RISING);
   }
 }
 
@@ -139,8 +143,32 @@ void moveTo(float des_X1, float des_Y1)
   REMAINING_X_STEPS = STEPS_TO_TAKE[0];
   REMAINING_Y_STEPS = STEPS_TO_TAKE[1];
 
-  // Run, Barry. Run!
-  run();
+  /* Run, Barry. Run! */
+
+  // Set rotation direction for motors
+  if (ROTATION_DIRECTION[0])
+    A1_MOTOR &= ~(1 << A1_DIR);
+  else
+    A1_MOTOR |=  (1 << A1_DIR);
+
+  if (ROTATION_DIRECTION[1])
+    A2_MOTOR &= ~(1 << A2_DIR);
+  else
+    A2_MOTOR |=  (1 << A2_DIR);
+
+  // Enable or disable motors
+  if (0 < STEPS_TO_TAKE[0])
+    A1_MOTOR &= ~(1 << A1_EN);
+  else
+    A1_MOTOR |=  (1 << A1_EN);
+
+  if (0 < STEPS_TO_TAKE[1])
+    A2_MOTOR &= ~(1 << A2_EN);
+  else
+    A2_MOTOR |=  (1 << A2_EN);
+
+  // Start outputing PWM control signals
+  PWM_StartStop(1, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
 }
 
 // Update the cursor's latest position
@@ -252,10 +280,13 @@ ISR(TIMER1_OVF_vect)
   bool CHANNEL_A = true,
        CHANNEL_B = true;
   /* Routine to check if any motor stops or runs */
+  if (REMAINING_X_STEPS == 0) A1_MOTOR |=  (1 << A1_EN);
+  if (REMAINING_Y_STEPS == 0) A2_MOTOR |=  (1 << A2_EN); 
+  
   if ((REMAINING_X_STEPS == 0) && (REMAINING_Y_STEPS == 0))   // Neither motor on x-axis nor motor y-axis has any more steps to run.
   {
     CHANNEL_A = false;
-    CHANNEL_B = false;
+    CHANNEL_B = false;   
   }
   else if ((REMAINING_X_STEPS == 0) ^ (REMAINING_Y_STEPS == 0))   // Either motor on x-axis or motor y-axis stops.
   {
