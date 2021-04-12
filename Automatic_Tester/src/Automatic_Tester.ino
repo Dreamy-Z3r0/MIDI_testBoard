@@ -16,12 +16,16 @@
 double STEPPER_PWM_PERIOD = 2;  // milliseconds
 double   STEPPER_PWM_DUTY = 75; // %  
 
+bool ROTATION_DIRECTION[] = {true, true};  // true (default) - anti-clockwise rotation; false - c lockwise rotation
+
+unsigned int STEPS_TO_TAKE[2];
+
 unsigned int REMAINING_X_STEPS = 0;
 unsigned int REMAINING_Y_STEPS = 0;
 
-uint8_t startButton = 3; // use INT1
-bool running = false;
+float DISPLACEMENT[2];
 float lastPos[2] = {1,1};
+
 const float positioning_Array[4][4][2] = {
     { {0,  0}, {38,  0}, {76,  0}, {114,  0} },
     { {0, 38}, {38, 38}, {76, 38}, {114, 38} },
@@ -29,41 +33,64 @@ const float positioning_Array[4][4][2] = {
     { {0,114}, {38,114}, {76,114}, {114,114} }
 };
 
+uint8_t startButton = 3;
+
+bool startButtonPressed = false;
+
+bool justStarted = false;
+bool running = false;
+
+unsigned long StartButton_HeldTime;
+
+bool stopCommand = false;
+
+
+
 void setup()
 {
     //PinMode for A2
-    DDRD |= (1<< A2_DIR);
-    DDRD |= (1<< A2_STEP);
-    DDRD |= (1<< A2_EN);
+    DDRD |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
+
     //PinMode for A1
-    DDRB |= (1<< A1_DIR);
-    DDRB |= (1<< A1_STEP);
-    DDRB |= (1<< A1_EN);
+    DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
+
     //Clear Enable pin for A1 and A2
-    PORTD &= ~(1<<A2_EN);
-    PORTB &= ~(1<<A1_EN);
-    //Set startButton as Input
-    DDRD &= ~(1<< startButton);
-    // Rising edge of INT1 generates interrupt
-    EICRA |= (1<<ISC11);
-    EICRA |= (1<<ISC10);
+    PORTD &= ~(1 << A2_EN);
+    PORTB &= ~(1 << A1_EN);
+
+    //Set startButton as nnput
+    pinMode(startButton, INPUT);
+
     // Enable interrrupts for INT1
-    EIMSK |= (1<< INT1); 
-    noInterrupts();
-    TCCR1A=0;
-    TCCR1B =0;
-    TCNT1 = 0;
-    OCR1A = 1000; //compare value
-    TCCR1B |= (1 << WGM12);                   // CTC mode
-    TCCR1B |= ((1 << CS11) | (1 << CS10));    // 64 prescaler
-    interrupts();
-    
-    get_lastPosition();
-    moveTo(0,0, lastPos[0], lastPos[2]);
+    attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 }
 
 void loop()
 {
+  while (startButtonPressed)
+  {
+    if (3000 + StartButton_HeldTime <= 0xFFFFFFFF)
+    {
+      if (millis() - StartButton_HeldTime >= 3000)
+      {
+        startButtonPressed = false;
+        detachInterrupt(digitalPinToInterrupt(startButton));
+        stopCommand = true;
+        attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
+      }
+    }
+    else
+    {
+      if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
+      {
+        startButtonPressed = false;
+        detachInterrupt(digitalPinToInterrupt(startButton));
+        stopCommand = true;
+        attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
+      }      
+    }
+  }
+
   if (running)
   {
     running = false;
@@ -72,13 +99,25 @@ void loop()
   }
 }
 
-
-
-
 void startService()
 {
   detachInterrupt(digitalPinToInterrupt(startButton));
-  running = true;
+  startButtonPressed = true;
+  StartButton_HeldTime = millis();
+
+  attachInterrupt(digitalPinToInterrupt(startButton), startService, RISING);
+}
+
+void buttonReleased()
+{
+  detachInterrupt(digitalPinToInterrupt(startButton));
+  startButtonPressed = false;
+  if (!running)
+  {
+    running = true;
+    justStarted = true;
+  }
+  attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 }
 
 void run()
@@ -86,21 +125,61 @@ void run()
   
 }
 
-void moveTo(float des_X1, float des_Y1, float from_X0, float from_Y0)
+void moveTo(float des_X1, float des_Y1)
 {
-  lastPos[0] = des_X1;
-  lastPos[1] = des_Y1;
+  get_lastPosition();   // Update the cursor's latest position
+
+  // Calculate the steps to take by each axis
+  float DISPLACEMENT_X = des_X1 - lastPos[0];
+  float DISPLACEMENT_Y = des_Y1 - lastPos[1];
+
+  DISPLACEMENT_TO_STEPS(DISPLACEMENT_X, &ROTATION_DIRECTION[0], &STEPS_TO_TAKE[0]);
+  DISPLACEMENT_TO_STEPS(DISPLACEMENT_Y, &ROTATION_DIRECTION[1], &STEPS_TO_TAKE[1]);
+
+  REMAINING_X_STEPS = STEPS_TO_TAKE[0];
+  REMAINING_Y_STEPS = STEPS_TO_TAKE[1];
+
+  // Run, Barry. Run!
+  run();
 }
 
+// Update the cursor's latest position
 void get_lastPosition()
 {
-  
+  lastPos[0] += STEPS_TO_DISPLACEMENT(STEPS_TO_TAKE[0]-REMAINING_X_STEPS, ROTATION_DIRECTION[0]);
+  lastPos[1] += STEPS_TO_DISPLACEMENT(STEPS_TO_TAKE[1]-REMAINING_Y_STEPS, ROTATION_DIRECTION[1]);
+
+  if ((0 == REMAINING_Y_STEPS) && (0 == REMAINING_X_STEPS))
+  {
+    STEPS_TO_TAKE[0] = 0;
+    STEPS_TO_TAKE[1] = 0;
+
+    save_lastPosition();
+  }
 }
 
 void save_lastPosition()
 {
-  
+  // Routine to save latest position to eeprom
 }
+
+
+/*****************************************************
+ *** Interchanging steps and physical displacement ***
+ *****************************************************/
+float STEPS_TO_DISPLACEMENT(unsigned int STEPS, bool ROTATION_DIRECTION)
+{
+  return (ROTATION_DIRECTION ? 40.0 : -40.0) * STEPS;
+}
+
+void DISPLACEMENT_TO_STEPS(float DISPLACEMENT_MM, bool *ROTATION_DIRECTION, unsigned int *STEPS)
+{
+  *ROTATION_DIRECTION = (DISPLACEMENT_MM >= 0);
+
+  float DISTANCE = DISPLACEMENT >= 0 ? DISPLACEMENT_MM : -DISPLACEMENT_MM;
+  *STEPS = (unsigned int)(DISTANCE / 40.0);
+}
+
 
 /*******************************************
  *** Output control signal(s) for motors ***
