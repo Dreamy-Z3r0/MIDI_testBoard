@@ -1,5 +1,9 @@
 #include <Arduino.h>
 
+
+/******************************************************
+ *** Macros and variables related to stepper motors ***
+ ******************************************************/
 #define STEPPER_TIMER 1
 
 #define STEPPER_MOTORS PORTB
@@ -24,7 +28,7 @@ unsigned int REMAINING_X_STEPS = 0;
 unsigned int REMAINING_Y_STEPS = 0;
 
 float DISPLACEMENT[2];
-float lastPos[2] = {1,1};
+float lastPos[2] = {0, 0};
 
 const float positioning_Array[4][4][2] = {
     { {0,  0}, {38,  0}, {76,  0}, {114,  0} },
