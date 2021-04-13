@@ -33,6 +33,9 @@ const float positioning_Array[4][4][2] = {
     { {0,114}, {38,114}, {76,114}, {114,114} }
 };
 
+uint8_t x_index = 0,
+        y_index = 0;
+
 
 /************************************************************
  *** Macros and flags used for commands from START button ***
@@ -71,7 +74,7 @@ void setup()
 
 void loop()
 {
-  while (startButtonPressed)
+  if (startButtonPressed)
   {
     if (3000 + StartButton_HeldTime <= 0xFFFFFFFF)    // Normal case of timing with millis() function.
     {
@@ -100,12 +103,21 @@ void loop()
     REMAINING_Y_STEPS = 0;
 
     stopCommand = false;    // Clear STOP command for new working cycles.
+    running = false; 
+
+    get_lastPosition();
   }
 
-  if (running)
+  if ((running) && (x_index < 4) && (y_index < 4))
   {
-    running = false;
     run();
+
+    if ((4 == x_index) && (4 == y_index))
+    {
+      running = false;
+      x_index = 0;
+      y_index = 0;
+    }
   }
 }
 
@@ -126,6 +138,8 @@ void buttonReleased()
   {
     running = true;
     justStarted = true;
+    x_index = 0;
+    y_index = 0;
   }
   attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 }
@@ -140,7 +154,25 @@ void STOP_command_initialized()
 
 void run()
 {
-  
+  if (justStarted)    // START command has just been called.
+  {
+    justStarted = false;
+    moveTo(positioning_Array[0][0][0], positioning_Array[0][0][1]);   // Move the cursor to the origin.
+  }
+
+  if ((0 == REMAINING_X_STEPS) && (0 == REMAINING_Y_STEPS))   // The cursor is stationary and ready for the next position.
+  {
+    x_index += 1;       // Next position on x-axis.
+
+    if (4 == x_index)   // Cursor has already been to the last position on the x-axis.
+    {
+      y_index += 1;     // Next row
+      if (4 > y_index) x_index = 0;   // If the cursor was not on the last row, it is moved to the beginning of the next row.
+    }
+
+    // Move the cursor the next position on the board.
+    if ((4 > x_index) || (4 > y_index)) moveTo(positioning_Array[y_index][x_index][0], positioning_Array[y_index][x_index][1]);
+  }
 }
 
 void moveTo(float des_X1, float des_Y1)
