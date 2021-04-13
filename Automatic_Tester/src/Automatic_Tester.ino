@@ -65,6 +65,7 @@ void setup()
     // Enable interrrupts for INT1
     attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 
+    // Initialize Timer 1 for controlling stepper motors.
     Initialization(STEPPER_TIMER, STEPPER_PWM_PERIOD, STEPPER_PWM_PERIOD*(STEPPER_PWM_DUTY/100.0));
 }
 
@@ -72,25 +73,18 @@ void loop()
 {
   while (startButtonPressed)
   {
-    if (3000 + StartButton_HeldTime <= 0xFFFFFFFF)
+    if (3000 + StartButton_HeldTime <= 0xFFFFFFFF)    // Normal case of timing with millis() function.
     {
-      if (millis() - StartButton_HeldTime >= 3000)
-      {
-        startButtonPressed = false;
-        detachInterrupt(digitalPinToInterrupt(startButton));
-        stopCommand = true;
-        attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
-      }
+      unsigned int currentTime = millis();
+      if (currentTime < StartButton_HeldTime)   // Case of unexpected overflowed timer counter.
+        STOP_command_initialized();
+      else if (millis() - StartButton_HeldTime >= 3000)   // Normal situation.
+        STOP_command_initialized();
     }
-    else
+    else    // Prevent the case of overflowed timer counter.
     {
       if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
-      {
-        startButtonPressed = false;
-        detachInterrupt(digitalPinToInterrupt(startButton));
-        stopCommand = true;
-        attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
-      }      
+        STOP_command_initialized(); 
     }
   }
 
@@ -133,6 +127,14 @@ void buttonReleased()
     running = true;
     justStarted = true;
   }
+  attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
+}
+
+void STOP_command_initialized()
+{
+  startButtonPressed = false;
+  detachInterrupt(digitalPinToInterrupt(startButton));
+  stopCommand = true;
   attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 }
 
