@@ -14,7 +14,7 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L arduino_nano_r3:Arduino_Nano_R3 U1
+L Automatic-Presser-rescue:Arduino_Nano_R3-arduino_nano_r3 U1
 U 1 1 603AB668
 P 4000 3000
 F 0 "U1" H 4000 3000 50  0000 C CNN
@@ -153,17 +153,17 @@ $EndComp
 NoConn ~ 3050 2400
 NoConn ~ 3050 2500
 NoConn ~ 4200 2000
-Text GLabel 4950 3350 2    50   Output ~ 0
+Text GLabel 4950 3150 2    50   Output ~ 0
 A1_EN
 Text GLabel 4950 3250 2    50   Output ~ 0
 A1_STEP
-Text GLabel 4950 3150 2    50   Output ~ 0
+Text GLabel 4950 3450 2    50   Output ~ 0
 A1_DIR
-Text GLabel 4950 3050 2    50   Output ~ 0
+Text GLabel 4950 3650 2    50   Output ~ 0
 A2_EN
-Text GLabel 4950 2950 2    50   Output ~ 0
+Text GLabel 4950 3350 2    50   Output ~ 0
 A2_STEP
-Text GLabel 4950 2850 2    50   Output ~ 0
+Text GLabel 4950 3550 2    50   Output ~ 0
 A2_DIR
 $Comp
 L power:+12V #PWR0112

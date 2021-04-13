@@ -3,11 +3,14 @@
 #define A1_MOTOR PORTB
 #define A2_MOTOR PORTD
 
-#define A2_DIR  PORTD5
-#define A2_STEP PORTD6
-#define A2_EN   PORTD7
-#define A1_DIR  PORTB0
 #define A1_STEP PORTB1
+#define A2_STEP PORTB2
+
+#define A2_DIR  PORTD5
+
+#define A2_EN   PORTB2
+#define A1_DIR  PORTB0
+
 #define A1_EN   PORTB2
 
 #define A1_STEP_HIGH  PORTB |=  (1<< A1_STEP) 
@@ -55,17 +58,17 @@ bool stopCommand = false;   // Stop command is requested by user after START but
 
 void setup()
 {
-    //PinMode for A2
+    // Set 
     DDRD |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
 
-    //PinMode for A1
+    // PinMode for A1
     DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
 
-    //Clear Enable pin for A1 and A2
-    A2_MOTOR &= ~(1 << A2_EN);
-    A1_MOTOR &= ~(1 << A1_EN);
+    // Disable stepper motors initially to avoid any unwanted operations.
+    A2_MOTOR |= (1 << A2_EN);
+    A1_MOTOR |= (1 << A1_EN);
 
-    //Set startButton as nnput
+    //Set startButton as input
     pinMode(startButton, INPUT);
 
     // Enable interrrupts for INT1
