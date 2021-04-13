@@ -16,8 +16,8 @@
 #define A2_STEP_HIGH  PORTD |= (1<< A2_STEP)
 #define A2_STEP_HIGH  PORTD &= ~(1<< A2_STEP)
 
-double STEPPER_PWM_PERIOD = 2;  // milliseconds
-double   STEPPER_PWM_DUTY = 75; // %  
+double STEPPER_PWM_PERIOD = 2;    // milliseconds
+double   STEPPER_PWM_DUTY = 75.0; // %  
 
 bool ROTATION_DIRECTION[] = {true, true};  // true (default) - anti-clockwise rotation; false - c lockwise rotation
 
@@ -36,16 +36,20 @@ const float positioning_Array[4][4][2] = {
     { {0,114}, {38,114}, {76,114}, {114,114} }
 };
 
-uint8_t startButton = 3;
 
-bool startButtonPressed = false;
+/************************************************************
+ *** Macros and flags used for commands from START button ***
+ ************************************************************/
 
-bool justStarted = false;
-bool running = false;
+#define startButton 3   // Arduino hardware input pin number for START button
 
-unsigned long StartButton_HeldTime;
+bool startButtonPressed = false;  // Indicates the states of the START button.
 
-bool stopCommand = false;
+bool justStarted = false;   // Indicates the first time START button is pressed in one working cycle.
+bool running = false;       // Flag for starting a working cycle of motors.
+
+unsigned long StartButton_HeldTime;   // Used for managing held time of START button for STOP command.
+bool stopCommand = false;   // Stop command is requested by user after START button has been held for some time (3 seconds).
 
 
 
@@ -67,7 +71,7 @@ void setup()
     // Enable interrrupts for INT1
     attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 
-    Initialization(1, 10, 7.5);
+    Initialization(1, STEPPER_PWM_PERIOD, STEPPER_PWM_PERIOD*(STEPPER_PWM_DUTY/100.0));
 }
 
 void loop()
