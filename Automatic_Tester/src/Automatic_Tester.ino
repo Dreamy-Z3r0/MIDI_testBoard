@@ -1,23 +1,15 @@
 #include <Arduino.h>
 
-#define A1_MOTOR PORTB
-#define A2_MOTOR PORTD
+#define STEPPER_MOTORS PORTB
+
+#define A1_EN   PORTB0
+#define A2_EN   PORTB5
+
+#define A1_DIR  PORTB3
+#define A2_DIR  PORTB4
 
 #define A1_STEP PORTB1
 #define A2_STEP PORTB2
-
-#define A2_DIR  PORTD5
-
-#define A2_EN   PORTB2
-#define A1_DIR  PORTB0
-
-#define A1_EN   PORTB2
-
-#define A1_STEP_HIGH  PORTB |=  (1<< A1_STEP) 
-#define A1_STEP_LOW   PORTB &= ~(1<< A1_STEP)
-
-#define A2_STEP_HIGH  PORTD |= (1<< A2_STEP)
-#define A2_STEP_HIGH  PORTD &= ~(1<< A2_STEP)
 
 double STEPPER_PWM_PERIOD = 2;    // milliseconds
 double   STEPPER_PWM_DUTY = 75.0; // %  
@@ -58,15 +50,12 @@ bool stopCommand = false;   // Stop command is requested by user after START but
 
 void setup()
 {
-    // Set 
-    DDRD |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
-
-    // PinMode for A1
+    // Set pin data direction for stepper-controlling pins
+    DDRB |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
     DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
 
     // Disable stepper motors initially to avoid any unwanted operations.
-    A2_MOTOR |= (1 << A2_EN);
-    A1_MOTOR |= (1 << A1_EN);
+    STEPPER_MOTORS |= ((1 << A2_EN) | (1 << A1_EN));
 
     //Set startButton as input
     pinMode(startButton, INPUT);
@@ -154,25 +143,25 @@ void moveTo(float des_X1, float des_Y1)
 
   // Set rotation direction for motors
   if (ROTATION_DIRECTION[0])
-    A1_MOTOR &= ~(1 << A1_DIR);
+    STEPPER_MOTORS &= ~(1 << A1_DIR);
   else
-    A1_MOTOR |=  (1 << A1_DIR);
+    STEPPER_MOTORS |=  (1 << A1_DIR);
 
   if (ROTATION_DIRECTION[1])
-    A2_MOTOR &= ~(1 << A2_DIR);
+    STEPPER_MOTORS &= ~(1 << A2_DIR);
   else
-    A2_MOTOR |=  (1 << A2_DIR);
+    STEPPER_MOTORS |=  (1 << A2_DIR);
 
   // Enable or disable motors
   if (0 < STEPS_TO_TAKE[0])
-    A1_MOTOR &= ~(1 << A1_EN);
+    STEPPER_MOTORS &= ~(1 << A1_EN);
   else
-    A1_MOTOR |=  (1 << A1_EN);
+    STEPPER_MOTORS |=  (1 << A1_EN);
 
   if (0 < STEPS_TO_TAKE[1])
-    A2_MOTOR &= ~(1 << A2_EN);
+    STEPPER_MOTORS &= ~(1 << A2_EN);
   else
-    A2_MOTOR |=  (1 << A2_EN);
+    STEPPER_MOTORS |=  (1 << A2_EN);
 
   // Start outputing PWM control signals
   PWM_StartStop(1, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
@@ -287,8 +276,8 @@ ISR(TIMER1_OVF_vect)
   bool CHANNEL_A = true,
        CHANNEL_B = true;
   /* Routine to check if any motor stops or runs */
-  if (REMAINING_X_STEPS == 0) A1_MOTOR |=  (1 << A1_EN);
-  if (REMAINING_Y_STEPS == 0) A2_MOTOR |=  (1 << A2_EN); 
+  if (REMAINING_X_STEPS == 0) STEPPER_MOTORS |= (1 << A1_EN);
+  if (REMAINING_Y_STEPS == 0) STEPPER_MOTORS |= (1 << A2_EN); 
   
   if ((REMAINING_X_STEPS == 0) && (REMAINING_Y_STEPS == 0))   // Neither motor on x-axis nor motor y-axis has any more steps to run.
   {
