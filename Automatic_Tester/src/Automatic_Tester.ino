@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#define STEPPER_TIMER 1
+
 #define STEPPER_MOTORS PORTB
 
 #define A1_EN   PORTB0
@@ -63,7 +65,7 @@ void setup()
     // Enable interrrupts for INT1
     attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 
-    Initialization(1, STEPPER_PWM_PERIOD, STEPPER_PWM_PERIOD*(STEPPER_PWM_DUTY/100.0));
+    Initialization(STEPPER_TIMER, STEPPER_PWM_PERIOD, STEPPER_PWM_PERIOD*(STEPPER_PWM_DUTY/100.0));
 }
 
 void loop()
@@ -90,6 +92,20 @@ void loop()
         attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
       }      
     }
+  }
+
+  if (stopCommand)    // STOP command initiated after the START button has been pressed and held for 3 seconds.
+  {
+    PWM_StartStop(STEPPER_TIMER, false, false);   // Stop both stepper motors immediately.
+    get_lastPosition();     // Get last position based on the remaing steps the stepper motors were taking.
+
+    STEPS_TO_TAKE[0] = 0;   // Clear stepper motors' movement data.
+    STEPS_TO_TAKE[1] = 0;
+
+    REMAINING_X_STEPS = 0;
+    REMAINING_Y_STEPS = 0;
+
+    stopCommand = false;    // Clear STOP command for new working cycles.
   }
 
   if (running)
@@ -164,7 +180,7 @@ void moveTo(float des_X1, float des_Y1)
     STEPPER_MOTORS |=  (1 << A2_EN);
 
   // Start outputing PWM control signals
-  PWM_StartStop(1, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
+  PWM_StartStop(STEPPER_TIMER, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
 }
 
 // Update the cursor's latest position
@@ -216,7 +232,7 @@ void Initialization(uint8_t TIMER_ID, double PERIOD_MS, double DUTY_CYCLE_MS)   
   double PERIOD = PERIOD_MS / 1000.0;
   double   DUTY = DUTY_CYCLE_MS / PERIOD_MS;
 
-  if (1 == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
   {
     TIMER_COUNTER_COMPARE_VALUE_UPDATE(TIMER_ID, PERIOD, DUTY);
 
@@ -239,7 +255,7 @@ void Initialization(uint8_t TIMER_ID, double PERIOD_MS, double DUTY_CYCLE_MS)   
 
 void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Called when at least a motor's behaviour is changed.
 {
-  if (1 == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
   {
     if (CHANNEL_B)  // Enable inverted fast PWM on channel B of Timer 1 (pin OC1B - Arduino D10)
       TCCR1A |=  ((1 << COM1B1) | (1 << COM1B0));
@@ -264,7 +280,7 @@ void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Calle
 
 void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, double PERIOD, double DUTY)
 {
-  if (1 == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
   {
     BASE_COUNTER_VALUE_TIM1 = 65536 - (uint32_t)(PERIOD * 250000.0);
     COMPARE_MATCH_VALUE_TIM1 = (uint32_t)(PERIOD * (1 - DUTY) * 250000.0) - 1 + BASE_COUNTER_VALUE_TIM1;
@@ -312,10 +328,8 @@ ISR(TIMER1_OVF_vect)
 
     ICR1 = COMPARE_MATCH_VALUE_TIM1;
     TCNT1 = BASE_COUNTER_VALUE_TIM1;
-
-    // Keep the enabled motor running
-    PWM_StartStop(1, CHANNEL_A, CHANNEL_B);
   }
-  else    // Both motors stop
-    PWM_StartStop(1, CHANNEL_A, CHANNEL_B);
+
+  // Keep the enabled motor(s) running and stop the disabled motor(s)
+  PWM_StartStop(STEPPER_TIMER, CHANNEL_A, CHANNEL_B);
 }
