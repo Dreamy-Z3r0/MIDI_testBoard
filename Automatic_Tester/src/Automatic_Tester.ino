@@ -7,16 +7,16 @@
  ******************************************************/
 #define STEPPER_TIMER 1
 
-#define STEPPER_MOTORS PORTB
+#define STEPPER_MOTORS_DDR DDRC
+#define STEPPER_MOTORS     PORTC
 
-#define A1_EN PORTB0
-#define A2_EN PORTB5
+#define A1_EN   PORTC0
+#define A1_STEP PORTC1
+#define A1_DIR  PORTC2
 
-#define A1_DIR PORTB3
-#define A2_DIR PORTB4
-
-#define A1_STEP PORTB1
-#define A2_STEP PORTB2
+#define A2_EN   PORTC3
+#define A2_STEP PORTC4
+#define A2_DIR  PORTC5
 
 #define MICROSTEPPING_FACTOR 4
 
@@ -61,8 +61,8 @@ void setup()
   Serial.begin(9600);
 
   // Set pin data direction for stepper-controlling pins
-  DDRB |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
-  DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
+  STEPPER_MOTORS_DDR |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
+  STEPPER_MOTORS_DDR |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
 
   // Disable stepper motors initially to avoid any unwanted operations.
   STEPPER_MOTORS |= ((1 << A2_EN) | (1 << A1_EN));
@@ -274,7 +274,7 @@ void moveTo(float des_X1, float des_Y1)
   else
     STEPPER_MOTORS |= (1 << A2_EN);
 
-  // Start outputing PWM control signals
+  // Start outputing Pseudo-PWM control signals
   PWM_StartStop(STEPPER_TIMER, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
 }
 
@@ -322,8 +322,8 @@ void DISPLACEMENT_TO_STEPS(float DISPLACEMENT_MM, bool *ROTATION_DIRECTION, unsi
 /*******************************************
  *** Output control signal(s) for motors ***
  *******************************************/
-uint16_t BASE_COUNTER_LOW_PERIOD, BASE_COUNTER_HIGH_PERIOD;
-bool CURRENT_OUTPUT_VALUE = LOW;
+uint16_t STEPPER_BASE_COUNTER_LOW_PERIOD, STEPPER_BASE_COUNTER_HIGH_PERIOD;
+bool STEPPER_CURRENT_OUTPUT_VALUE = LOW;
 
 void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    // Called once at boot, or whenever user wants to change control signal.
 {
@@ -338,7 +338,7 @@ void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    /
     TCCR1B &= ~((1 << WGM13) | (1 << WGM12));
 
     // Set initial value for counter register
-    TCNT1 = BASE_COUNTER_LOW_PERIOD;
+    TCNT1 = STEPPER_BASE_COUNTER_LOW_PERIOD;
 
     // Enable overflow interrupt
     TIMSK1 = 1;   // Only enable overflow interrupt
@@ -350,13 +350,15 @@ void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Calle
 {
   if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
   {
-    if ((!CHANNEL_B) && (!CHANNEL_A))   // Stop Timer 1: Stop PWM on both pins OC1A and OC1B
+    if (!(CHANNEL_A | CHANNEL_B))   // Timer 1 stopped: Disable Pseudo-PWM on both pins A1_STEP and A2_STEP
       TCCR1B &= ~((1 << CS12) | (1 << CS11) | (1 << CS10));
-    else    // Timer 1 running: PWM enabled on either OC1A or OC1B, or both pins
+    else    // Timer 1 running: Pseudo-PWM enabled on either pins A1_STEP or A2_STEP, or both pins
     {
-      // Precaler = 8
-      TCCR1B &=  ~((1 << CS12) | (1 << CS10));
-      TCCR1B |=   (1 << CS11);
+      if (0x02 != (TCCR1B & 0x02))  // Precaler = 8
+      {
+        TCCR1B &=  ~((1 << CS12) | (1 << CS10));
+        TCCR1B |=   (1 << CS11);
+      }
     }
   }
 }
@@ -365,18 +367,18 @@ void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, float PERIOD, float DU
 {
   if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
   {
-    BASE_COUNTER_HIGH_PERIOD = (uint16_t)(65536 - 2000 * DUTY);
-    BASE_COUNTER_LOW_PERIOD  = (uint16_t)(65536 - 2000 * (PERIOD - DUTY));
+    STEPPER_BASE_COUNTER_HIGH_PERIOD = (uint16_t)(65536 - 2000 * DUTY);
+    STEPPER_BASE_COUNTER_LOW_PERIOD  = (uint16_t)(65536 - 2000 * (PERIOD - DUTY));
   }
 }
 
 ISR(TIMER1_OVF_vect)
 {
-  CURRENT_OUTPUT_VALUE = !CURRENT_OUTPUT_VALUE;
+  STEPPER_CURRENT_OUTPUT_VALUE = !STEPPER_CURRENT_OUTPUT_VALUE;
 
-  if (CURRENT_OUTPUT_VALUE)
+  if (STEPPER_CURRENT_OUTPUT_VALUE)
   {
-    TCNT1 = BASE_COUNTER_HIGH_PERIOD;
+    TCNT1 = STEPPER_BASE_COUNTER_HIGH_PERIOD;
 
     if ((REMAINING_X_STEPS == 0) && (REMAINING_Y_STEPS == 0))   // Neither motor on x-axis nor motor y-axis has any more steps to run.
     {
@@ -402,7 +404,7 @@ ISR(TIMER1_OVF_vect)
   }
   else
   {
-    TCNT1 = BASE_COUNTER_LOW_PERIOD;
+    TCNT1 = STEPPER_BASE_COUNTER_LOW_PERIOD;
 
     STEPPER_MOTORS &= ~((1 << A1_STEP) | (1 << A2_STEP));
 
