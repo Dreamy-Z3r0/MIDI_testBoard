@@ -52,7 +52,7 @@ uint8_t x_index = 0,
 #define SERVO_MOTOR     PORTB
 #define SERVO_PWM_PIN   PORTB1    // Chosen PWM pin for motor is Arduino Digital 9 (PB1 - OC1A)
 
-float SERVO_ANGLE = 0;
+float SERVO_ANGLE = 90;
 
 
 /************************************************************
