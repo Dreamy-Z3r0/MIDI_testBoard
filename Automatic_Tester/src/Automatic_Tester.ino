@@ -8,15 +8,15 @@
 #define STEPPER_TIMER 1
 
 #define STEPPER_MOTORS_DDR DDRC
-#define STEPPER_MOTORS     PORTC
+#define STEPPER_MOTORS     PORTC  // Analog input pins on Arduino board
 
-#define A1_EN   PORTC0
-#define A1_STEP PORTC1
-#define A1_DIR  PORTC2
+#define A1_EN   PORTC0    // Arduino A0
+#define A1_STEP PORTC1    // Arduino A1
+#define A1_DIR  PORTC2    // Arduino A2
 
-#define A2_EN   PORTC3
-#define A2_STEP PORTC4
-#define A2_DIR  PORTC5
+#define A2_EN   PORTC3    // Arduino A3
+#define A2_STEP PORTC4    // Arduino A4
+#define A2_DIR  PORTC5    // Arduino A5
 
 #define MICROSTEPPING_FACTOR 4
 
