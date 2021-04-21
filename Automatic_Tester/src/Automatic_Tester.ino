@@ -347,7 +347,7 @@ void DISPLACEMENT_TO_STEPS(float DISPLACEMENT_MM, bool *ROTATION_DIRECTION, unsi
  ***************************************************************************/
 float ANGLE_TO_DUTY(float angle)
 {
-  return (angle / 180) + 1.5;
+  return ((angle / 180) + 1.5);
 }
 
 void SERVO_MOVETO(float angle)
@@ -384,7 +384,7 @@ void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    /
   else if (SERVO_TIMER == TIMER_ID)
   {
     cli();    // Dsiable global interrupts
-
+    
     TIMER_COUNTER_COMPARE_VALUE_UPDATE(SERVO_TIMER, 20, DUTY_CYCLE_MS);
 
     // Set counter mode: Fast PWM mode 14
@@ -393,7 +393,7 @@ void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    /
     TCCR1B |= ((1 << WGM13) | (1 << WGM12));
 
     // Set TOP value for counter
-    ICR1 = 0xFFFF;
+    ICR1 = 40000;
 
     // Set PWM output pin
     if (PORTB1 == SERVO_PWM_PIN)        // OC1A
@@ -407,20 +407,17 @@ void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    /
       TCCR1A |=   (1 << COM1B1);
     }
 
-    // Set initial base counter value
-    TCNT1 = 25536;
-
     // Enable overflow interrupt
     TIMSK1 = 1;   // Only enable overflow interrupt
 
     sei();    // Enable global interrupts
 
     // Start outputing PWM signal
-    PWM_StartStop(SERVO_TIMER);
+    PWM_StartStop(SERVO_TIMER, true, false);
   }
 }
 
-void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A = true, bool CHANNEL_B = true)    // Called when at least a motor's behaviour is changed.
+void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Called when at least a motor's behaviour is changed.
 {
   if (STEPPER_TIMER == TIMER_ID)  // Timer 2 in use
   {
@@ -453,11 +450,11 @@ void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, float PERIOD, float DU
   {
     if (PORTB1 == SERVO_PWM_PIN)
     {
-      OCR1A = (uint8_t)(25536 + 2000 * DUTY);
+      OCR1A = (uint16_t)(2000 * DUTY);
     }
     else if (PORTB2 == SERVO_PWM_PIN)
     {
-      OCR1B = (uint8_t)(25536 + 2000 * DUTY);
+      OCR1B = (uint16_t)(2000 * DUTY);
     }
   }
 }
@@ -535,5 +532,5 @@ ISR(TIMER2_OVF_vect)
 
 ISR(TIMER1_OVF_vect)
 {
-  TCNT1 = 25536;
+  SERVO_MOVETO(SERVO_ANGLE);
 }
