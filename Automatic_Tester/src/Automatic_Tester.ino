@@ -125,22 +125,22 @@ void loop()
     else Serial.println("Invalid command!");
   }
 
-  if (startButtonPressed)
-  {
-    if (3000 + StartButton_HeldTime <= 0xFFFFFFFF) // Normal case of timing with millis() function.
-    {
-      unsigned int currentTime = millis();
-      if (currentTime < StartButton_HeldTime) // Case of unexpected overflowed timer counter.
-        STOP_command_initialized();
-      else if (millis() - StartButton_HeldTime >= 3000) // Normal situation.
-        STOP_command_initialized();
-    }
-    else // Prevent the case of overflowed timer counter.
-    {
-      if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
-        STOP_command_initialized();
-    }
-  }
+  // if (startButtonPressed)
+  // {
+  //   if (3000 + StartButton_HeldTime <= 0xFFFFFFFF) // Normal case of timing with millis() function.
+  //   {
+  //     unsigned int currentTime = millis();
+  //     if (currentTime < StartButton_HeldTime) // Case of unexpected overflowed timer counter.
+  //       STOP_command_initialized();
+  //     else if (millis() - StartButton_HeldTime >= 3000) // Normal situation.
+  //       STOP_command_initialized();
+  //   }
+  //   else // Prevent the case of overflowed timer counter.
+  //   {
+  //     if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
+  //       STOP_command_initialized();
+  //   }
+  // 
 
   if (stopCommand)    // STOP command initiated after the START button has been pressed and held for 3 seconds.
   {
@@ -168,12 +168,12 @@ void loop()
     }
   }
 
-//  if (MOTOR_OPERATING_FLAG)
-//  {
-//    Serial.print(REMAINING_X_STEPS);
-//    Serial.print(",");
-//    Serial.println(REMAINING_Y_STEPS);
-//  }
+ if (MOTOR_OPERATING_FLAG)
+ {
+   Serial.print(REMAINING_X_STEPS);
+   Serial.print(",");
+   Serial.println(REMAINING_Y_STEPS);
+ }
 }
 
 void startService()

@@ -1,4 +1,4 @@
-#include <Arduino.h>
+lib_extra_dirs = /home/z3r0/Arduino/libraries#include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
