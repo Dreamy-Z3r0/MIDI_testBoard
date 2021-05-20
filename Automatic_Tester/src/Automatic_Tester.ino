@@ -168,12 +168,12 @@ void loop()
     }
   }
 
- if (MOTOR_OPERATING_FLAG)
- {
-   Serial.print(REMAINING_X_STEPS);
-   Serial.print(",");
-   Serial.println(REMAINING_Y_STEPS);
- }
+//  if (MOTOR_OPERATING_FLAG)
+//  {
+//    Serial.print(REMAINING_X_STEPS);
+//    Serial.print(",");
+//    Serial.println(REMAINING_Y_STEPS);
+//  }
 }
 
 void startService()
