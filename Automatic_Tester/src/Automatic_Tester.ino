@@ -181,10 +181,10 @@ void loop()
 
   // SERVO_ANGLE += (SIGN * 45.0);
 
-  if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 135.0;
-  else if (135.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
+  // if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 135.0;
+  // else if (135.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
 
-  SERVO_MOVETO(SERVO_ANGLE);
+  // SERVO_MOVETO(SERVO_ANGLE);
   // delay(500);
 }
 
@@ -227,7 +227,12 @@ void TEST_RUN_ROUTINE()
   }
   else if ((0 == REMAINING_X_STEPS) && (0 == REMAINING_Y_STEPS))   // The cursor is stationary and ready for the next position.
   {
+    if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 180.0;
+    else if (180.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
+    SERVO_MOVETO(SERVO_ANGLE);
+
     delay(300);
+
     x_index += 1;       // Next position on x-axis.
 
     if (4 == x_index)   // Cursor has already been to the last position on the x-axis.
@@ -251,7 +256,7 @@ void moveTo(float des_X1, float des_Y1)
     if ((STEPS_TO_TAKE[0] != 0) || (STEPS_TO_TAKE[1] != 0)) get_lastPosition();
   }
 
-  Serial.print("Move to (");
+  Serial.print("\n\nMove to (");
   Serial.print(positioning_Array[y_index][x_index][0]);
   Serial.print(", ");
   Serial.print(positioning_Array[y_index][x_index][1]);
@@ -272,7 +277,7 @@ void moveTo(float des_X1, float des_Y1)
   REMAINING_X_STEPS = STEPS_TO_TAKE[0];
   REMAINING_Y_STEPS = STEPS_TO_TAKE[1];
 
-  Serial.print("   DISPLACEMENT_X = ");
+  Serial.print("\n   DISPLACEMENT_X = ");
   Serial.print(DISPLACEMENT_X);
   Serial.print(" -> ");
   Serial.print(STEPS_TO_TAKE[0]);
