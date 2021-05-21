@@ -1,27 +1,29 @@
-lib_extra_dirs = /home/z3r0/Arduino/libraries#include <Arduino.h>
+#include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-/******************************************************
- *** Macros and variables related to stepper motors ***
- ******************************************************/
-#define STEPPER_TIMER 1
+#include <Servo.h>
 
-#define STEPPER_MOTORS PORTB
+/******************************************************************
+ *** Macros and variables related to controlling stepper motors ***
+ ******************************************************************/
+#define STEPPER_TIMER 2
 
-#define A1_EN PORTB0
-#define A2_EN PORTB5
+#define STEPPER_MOTORS_DDR DDRC
+#define STEPPER_MOTORS     PORTC  // Analog input pins on Arduino board
 
-#define A1_DIR PORTB3
-#define A2_DIR PORTB4
+#define A1_EN   PORTC0    // Arduino A0
+#define A1_STEP PORTC1    // Arduino A1
+#define A1_DIR  PORTC2    // Arduino A2
 
-#define A1_STEP PORTB1
-#define A2_STEP PORTB2
+#define A2_EN   PORTC3    // Arduino A3
+#define A2_STEP PORTC4    // Arduino A4
+#define A2_DIR  PORTC5    // Arduino A5
 
 #define MICROSTEPPING_FACTOR 4
 
-double STEPPER_PWM_PERIOD = 0.25;  // milliseconds
-double STEPPER_PWM_DUTY = 95.0; // %
+double STEPPER_PWM_PERIOD = 0.3;  // milliseconds
+double STEPPER_PWM_DUTY = 0; // %
 
 bool ROTATION_DIRECTION[] = {true, true}; // true (default) - counter-clockwise rotation; false - clockwise rotation
 
@@ -42,6 +44,24 @@ const float positioning_Array[4][4][2] = {
 uint8_t x_index = 0,
         y_index = 0;
 
+
+/****************************************************************
+ *** Macros and variables related to conbtrolling servo motor ***
+ ****************************************************************/
+#define SERVO_TIMER 1             // Timer 1 is used for controlling servo motor.
+
+#define SERVO_MOTOR_DDR DDRB      
+#define SERVO_MOTOR     PORTB
+// #define SERVO_PWM_PIN   PORTB1    // Chosen PWM pin for motor is Arduino Digital 9 (PB1 - OC1A)
+
+#define SERVO_PWM_PIN 9
+Servo testServo;
+
+float SERVO_ANGLE = 0;
+
+int8_t SIGN = 1;
+
+
 /************************************************************
  *** Macros and flags used for commands from START button ***
  ************************************************************/
@@ -59,10 +79,17 @@ bool stopCommand = false;           // Stop command is requested by user after S
 void setup()
 {
   Serial.begin(9600);
+  testServo.attach(SERVO_PWM_PIN);
+
+  // Set pin data direction for servo-controlling pins
+  SERVO_MOTOR_DDR |= (1 << SERVO_PWM_PIN);
+
+  // Output LOW on SERVO_PWM_PIN initially
+  SERVO_MOTOR &= ~(1 << SERVO_PWM_PIN);
 
   // Set pin data direction for stepper-controlling pins
-  DDRB |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
-  DDRB |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
+  STEPPER_MOTORS_DDR |= ((1 << A2_DIR) | (1 << A2_STEP) | (1 << A2_EN));
+  STEPPER_MOTORS_DDR |= ((1 << A1_DIR) | (1 << A1_STEP) | (1 << A1_EN));
 
   // Disable stepper motors initially to avoid any unwanted operations.
   STEPPER_MOTORS |= ((1 << A2_EN) | (1 << A1_EN));
@@ -73,8 +100,11 @@ void setup()
   // Enable interrrupts for INT1
   attachInterrupt(digitalPinToInterrupt(startButton), startService, FALLING);
 
-  // Initialize Timer 1 for controlling stepper motors.
+  // Initialize Timer 2 for controlling stepper motors.
   Initialization(STEPPER_TIMER, STEPPER_PWM_PERIOD, STEPPER_PWM_PERIOD * (STEPPER_PWM_DUTY / 100.0));
+
+  // Initialize Timer 1 for controlling servo motor.
+  // Initialization(SERVO_TIMER, 20, ANGLE_TO_DUTY(SERVO_ANGLE));
 }
 
 void loop()
@@ -103,22 +133,22 @@ void loop()
     else Serial.println("Invalid command!");
   }
 
-  if (startButtonPressed)
-  {
-    if (3000 + StartButton_HeldTime <= 0xFFFFFFFF) // Normal case of timing with millis() function.
-    {
-      unsigned int currentTime = millis();
-      if (currentTime < StartButton_HeldTime) // Case of unexpected overflowed timer counter.
-        STOP_command_initialized();
-      else if (millis() - StartButton_HeldTime >= 3000) // Normal situation.
-        STOP_command_initialized();
-    }
-    else // Prevent the case of overflowed timer counter.
-    {
-      if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
-        STOP_command_initialized();
-    }
-  }
+  // if (startButtonPressed)
+  // {
+  //   if (3000 + StartButton_HeldTime <= 0xFFFFFFFF) // Normal case of timing with millis() function.
+  //   {
+  //     unsigned int currentTime = millis();
+  //     if (currentTime < StartButton_HeldTime) // Case of unexpected overflowed timer counter.
+  //       STOP_command_initialized();
+  //     else if (millis() - StartButton_HeldTime >= 3000) // Normal situation.
+  //       STOP_command_initialized();
+  //   }
+  //   else // Prevent the case of overflowed timer counter.
+  //   {
+  //     if (millis() >= (3000 - (0xFFFFFFFF - StartButton_HeldTime)))
+  //       STOP_command_initialized();
+  //   }
+  // 
 
   if (stopCommand)    // STOP command initiated after the START button has been pressed and held for 3 seconds.
   {
@@ -152,6 +182,14 @@ void loop()
 //    Serial.print(",");
 //    Serial.println(REMAINING_Y_STEPS);
 //  }
+  if (0 == SERVO_ANGLE) SERVO_ANGLE = 180;
+  else SERVO_ANGLE = 0;
+
+  // SERVO_ANGLE += (SIGN * 45.0);
+
+  testSERVO.WRITE(SERVO_ANGLE);
+  // SERVO_MOVETO(SERVO_ANGLE);
+  delay(500);
 }
 
 void startService()
@@ -274,7 +312,7 @@ void moveTo(float des_X1, float des_Y1)
   else
     STEPPER_MOTORS |= (1 << A2_EN);
 
-  // Start outputing PWM control signals
+  // Start outputing Pseudo-PWM control signals
   PWM_StartStop(STEPPER_TIMER, REMAINING_X_STEPS > 0, REMAINING_Y_STEPS > 0);
 }
 
@@ -319,64 +357,131 @@ void DISPLACEMENT_TO_STEPS(float DISPLACEMENT_MM, bool *ROTATION_DIRECTION, unsi
   Serial.println(*STEPS);
 }
 
+
+/***************************************************************************
+ *** Calculating and update duty cycle of control signal for servo motor ***
+ ***************************************************************************/
+float ANGLE_TO_DUTY(float angle)
+{
+  return ((angle / 180) + 1.5);
+}
+
+void SERVO_MOVETO(float angle)
+{
+  TIMER_COUNTER_COMPARE_VALUE_UPDATE(SERVO_TIMER, 20, ANGLE_TO_DUTY(angle));
+}
+
 /*******************************************
  *** Output control signal(s) for motors ***
  *******************************************/
-uint16_t BASE_COUNTER_LOW_PERIOD, BASE_COUNTER_HIGH_PERIOD;
-bool CURRENT_OUTPUT_VALUE = LOW;
+uint8_t STEPPER_BASE_COUNTER_LOW_PERIOD, STEPPER_BASE_COUNTER_HIGH_PERIOD;
+bool STEPPER_CURRENT_OUTPUT_VALUE = LOW;
 
 void Initialization(uint8_t TIMER_ID, float PERIOD_MS, float DUTY_CYCLE_MS)    // Called once at boot, or whenever user wants to change control signal.
 {
-  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 2 in use
   {
-    cli();
+    cli();    // Dsiable global interrupts
 
     TIMER_COUNTER_COMPARE_VALUE_UPDATE(TIMER_ID, PERIOD_MS, DUTY_CYCLE_MS);
 
     // Set counter mode: Normal mode
-    TCCR1A &= ~((1 << WGM11) | (1 << WGM10));
-    TCCR1B &= ~((1 << WGM13) | (1 << WGM12));
+    TCCR2A &= ~((1 << WGM21) | (1 << WGM20));
+    TCCR2B &= ~(1 << WGM22);
 
     // Set initial value for counter register
-    TCNT1 = BASE_COUNTER_LOW_PERIOD;
+    TCNT2 = STEPPER_BASE_COUNTER_LOW_PERIOD;
+
+    // Enable overflow interrupt
+    TIMSK2 = 1;   // Only enable overflow interrupt
+
+    sei();    // Enable global interrupts
+  }
+  else if (SERVO_TIMER == TIMER_ID)
+  {
+    cli();    // Dsiable global interrupts
+    
+    TIMER_COUNTER_COMPARE_VALUE_UPDATE(SERVO_TIMER, 20, DUTY_CYCLE_MS);
+
+    // Set counter mode: Fast PWM mode 14
+    TCCR1A |=  (1 << WGM11);
+    TCCR1A &= ~(1 << WGM10);
+    TCCR1B |= ((1 << WGM13) | (1 << WGM12));
+
+    // Set TOP value for counter
+    ICR1 = 40000;
+
+    // Set PWM output pin
+    if (PORTB1 == SERVO_PWM_PIN)        // OC1A
+    {
+      TCCR1A &= ~((1 << COM1A0) | (1 << COM1B1) | (1 << COM1B0));
+      TCCR1A |=   (1 << COM1A1);
+    }
+    else if (PORTB2 == SERVO_PWM_PIN)   // OC1B
+    {
+      TCCR1A &= ~((1 << COM1B0) | (1 << COM1A1) | (1 << COM1A0));
+      TCCR1A |=   (1 << COM1B1);
+    }
 
     // Enable overflow interrupt
     TIMSK1 = 1;   // Only enable overflow interrupt
-    sei();
+
+    sei();    // Enable global interrupts
+
+    // Start outputing PWM signal
+    PWM_StartStop(SERVO_TIMER, true, false);
   }
 }
 
 void PWM_StartStop(uint8_t TIMER_ID, bool CHANNEL_A, bool CHANNEL_B)    // Called when at least a motor's behaviour is changed.
 {
-  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 2 in use
   {
-    if ((!CHANNEL_B) && (!CHANNEL_A))   // Stop Timer 1: Stop PWM on both pins OC1A and OC1B
-      TCCR1B &= ~((1 << CS12) | (1 << CS11) | (1 << CS10));
-    else    // Timer 1 running: PWM enabled on either OC1A or OC1B, or both pins
+    if (!(CHANNEL_A | CHANNEL_B))   // Timer 2 stopped: Disable Pseudo-PWM on both pins A1_STEP and A2_STEP
+      TCCR2B &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
+    else    // Timer 2 running: Pseudo-PWM enabled on either pins A1_STEP or A2_STEP, or both pins
     {
-      // Precaler = 8
-      TCCR1B &=  ~((1 << CS12) | (1 << CS10));
-      TCCR1B |=   (1 << CS11);
+      if (0x04 != (TCCR2B & 0x04))  // Precaler = 64
+      {
+        TCCR2B &=  ~((1 << CS21) | (1 << CS20));
+        TCCR2B |=    (1 << CS22);
+      }
     }
+  }
+  else if (SERVO_TIMER == TIMER_ID)   // PWM is always enabled on either OC1A or OC1B
+  {
+    TCCR1B &= ~((1 << CS12) | (1 << CS10));
+    TCCR1B |=   (1 << CS11);
   }
 }
 
 void TIMER_COUNTER_COMPARE_VALUE_UPDATE(uint8_t TIMER_ID, float PERIOD, float DUTY)
 {
-  if (STEPPER_TIMER == TIMER_ID)  // Timer 1 in use
+  if (STEPPER_TIMER == TIMER_ID)  // Timer 2 in use
   {
-    BASE_COUNTER_HIGH_PERIOD = (uint16_t)(65536 - 2000 * DUTY);
-    BASE_COUNTER_LOW_PERIOD  = (uint16_t)(65536 - 2000 * (PERIOD - DUTY));
+    STEPPER_BASE_COUNTER_HIGH_PERIOD = (uint8_t)(256 - 250 * DUTY);
+    STEPPER_BASE_COUNTER_LOW_PERIOD  = (uint8_t)(256 - 250 * (PERIOD - DUTY));
+  }
+  else if (SERVO_TIMER == TIMER_ID)
+  {
+    if (PORTB1 == SERVO_PWM_PIN)
+    {
+      OCR1A = (uint16_t)(2000 * DUTY);
+    }
+    else if (PORTB2 == SERVO_PWM_PIN)
+    {
+      OCR1B = (uint16_t)(2000 * DUTY);
+    }
   }
 }
 
-ISR(TIMER1_OVF_vect)
+ISR(TIMER2_OVF_vect)
 {
-  CURRENT_OUTPUT_VALUE = !CURRENT_OUTPUT_VALUE;
+  STEPPER_CURRENT_OUTPUT_VALUE = !STEPPER_CURRENT_OUTPUT_VALUE;
 
-  if (CURRENT_OUTPUT_VALUE)
+  if (STEPPER_CURRENT_OUTPUT_VALUE)
   {
-    TCNT1 = BASE_COUNTER_HIGH_PERIOD;
+    TCNT2 = STEPPER_BASE_COUNTER_HIGH_PERIOD;
 
     if ((REMAINING_X_STEPS == 0) && (REMAINING_Y_STEPS == 0))   // Neither motor on x-axis nor motor y-axis has any more steps to run.
     {
@@ -402,7 +507,7 @@ ISR(TIMER1_OVF_vect)
   }
   else
   {
-    TCNT1 = BASE_COUNTER_LOW_PERIOD;
+    TCNT2 = STEPPER_BASE_COUNTER_LOW_PERIOD;
 
     STEPPER_MOTORS &= ~((1 << A1_STEP) | (1 << A2_STEP));
 
@@ -439,4 +544,9 @@ ISR(TIMER1_OVF_vect)
     // Keep the enabled motor(s) running and stop the disabled motor(s)
     PWM_StartStop(STEPPER_TIMER, CHANNEL_A, CHANNEL_B);
   }
+}
+
+ISR(TIMER1_OVF_vect)
+{
+  SERVO_MOVETO(SERVO_ANGLE);
 }

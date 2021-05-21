@@ -21,7 +21,7 @@
 #define MICROSTEPPING_FACTOR 4
 
 double STEPPER_PWM_PERIOD = 0.3;  // milliseconds
-double STEPPER_PWM_DUTY = 90.0; // %
+double STEPPER_PWM_DUTY = 0; // %
 
 bool ROTATION_DIRECTION[] = {true, true}; // true (default) - counter-clockwise rotation; false - clockwise rotation
 
@@ -53,6 +53,8 @@ uint8_t x_index = 0,
 #define SERVO_PWM_PIN   PORTB1    // Chosen PWM pin for motor is Arduino Digital 9 (PB1 - OC1A)
 
 float SERVO_ANGLE = 90;
+
+int8_t SIGN = 1;
 
 
 /************************************************************
@@ -174,6 +176,16 @@ void loop()
 //    Serial.print(",");
 //    Serial.println(REMAINING_Y_STEPS);
 //  }
+  // if (0 == SERVO_ANGLE) SIGN = 1;
+  // else if (180 == SERVO_ANGLE) SIGN = -1;
+
+  // SERVO_ANGLE += (SIGN * 45.0);
+
+  if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 135.0;
+  else if (135.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
+
+  SERVO_MOVETO(SERVO_ANGLE);
+  // delay(500);
 }
 
 void startService()
@@ -347,7 +359,7 @@ void DISPLACEMENT_TO_STEPS(float DISPLACEMENT_MM, bool *ROTATION_DIRECTION, unsi
  ***************************************************************************/
 float ANGLE_TO_DUTY(float angle)
 {
-  return ((angle / 180) + 1.5);
+  return ((angle / 90.0) + 0.5);
 }
 
 void SERVO_MOVETO(float angle)
