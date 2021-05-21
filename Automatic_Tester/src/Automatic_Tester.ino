@@ -168,23 +168,6 @@ void loop()
       y_index = 0;
     }
   }
-
-//  if (MOTOR_OPERATING_FLAG)
-//  {
-//    Serial.print(REMAINING_X_STEPS);
-//    Serial.print(",");
-//    Serial.println(REMAINING_Y_STEPS);
-//  }
-  // if (0 == SERVO_ANGLE) SIGN = 1;
-  // else if (180 == SERVO_ANGLE) SIGN = -1;
-
-  // SERVO_ANGLE += (SIGN * 45.0);
-
-  // if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 135.0;
-  // else if (135.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
-
-  // SERVO_MOVETO(SERVO_ANGLE);
-  // delay(500);
 }
 
 void startService()
