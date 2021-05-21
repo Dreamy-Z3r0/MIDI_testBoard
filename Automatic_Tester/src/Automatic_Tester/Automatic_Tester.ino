@@ -54,8 +54,6 @@ uint8_t x_index = 0,
 
 float SERVO_ANGLE = 90;
 
-int8_t SIGN = 1;
-
 
 /************************************************************
  *** Macros and flags used for commands from START button ***
@@ -156,6 +154,7 @@ void loop()
     MOTOR_OPERATING_FLAG = false;
 
     get_lastPosition();
+    SERVO_MOVETO(SERVO_ANGLE);
   }
 
   if ((MOTOR_OPERATING_FLAG) && (x_index < 4) && (y_index < 4))
