@@ -119,7 +119,7 @@ void loop()
     }
     else if ('N' == BUFFER[0])
     {
-      Serial.println("Command: N");
+      Serial.println("\nCommand: N");
       stopCommand = true;
     }
     else Serial.println("Invalid command!");
@@ -147,14 +147,38 @@ void loop()
     PWM_StartStop(STEPPER_TIMER, false, false);   // Stop both stepper motors immediately.
     get_lastPosition();     // Get last position based on the remaing steps the stepper motors were taking.
 
-    REMAINING_X_STEPS = 0;
-    REMAINING_Y_STEPS = 0;
-
     stopCommand = false;    // Clear STOP command for new working cycles.
     MOTOR_OPERATING_FLAG = false;
 
-    get_lastPosition();
+    // get_lastPosition();
     SERVO_MOVETO(SERVO_ANGLE);
+
+    Serial.print("  Last known position: (");
+    Serial.print(lastPos[0]);
+    Serial.print(", ");
+    Serial.print(lastPos[1]);
+    Serial.println(")\n");
+
+    Serial.println("  Last known parameters:");
+    
+    Serial.print("    STEPS_TO_TAKE [] = {");
+    Serial.print(STEPS_TO_TAKE[0]);
+    Serial.print(", ");
+    Serial.print(STEPS_TO_TAKE[1]);
+    Serial.println("}");
+
+    Serial.print("    (REMAINING_X_STEPS, REMAINING_Y_STEPS) = (");
+    Serial.print(REMAINING_X_STEPS);
+    Serial.print(", ");
+    Serial.print(REMAINING_Y_STEPS);
+    Serial.println(")\n\n");
+
+
+    REMAINING_X_STEPS = 0;
+    REMAINING_Y_STEPS = 0;
+
+    STEPS_TO_TAKE[0] = 0;
+    STEPS_TO_TAKE[1] = 0;
   }
 
   if ((MOTOR_OPERATING_FLAG) && (x_index < 4) && (y_index < 4))
@@ -168,23 +192,6 @@ void loop()
       y_index = 0;
     }
   }
-
-//  if (MOTOR_OPERATING_FLAG)
-//  {
-//    Serial.print(REMAINING_X_STEPS);
-//    Serial.print(",");
-//    Serial.println(REMAINING_Y_STEPS);
-//  }
-  // if (0 == SERVO_ANGLE) SIGN = 1;
-  // else if (180 == SERVO_ANGLE) SIGN = -1;
-
-  // SERVO_ANGLE += (SIGN * 45.0);
-
-  // if (90.0 == SERVO_ANGLE) SERVO_ANGLE = 135.0;
-  // else if (135.0 == SERVO_ANGLE) SERVO_ANGLE = 90.0;
-
-  // SERVO_MOVETO(SERVO_ANGLE);
-  // delay(500);
 }
 
 void startService()
@@ -322,10 +329,10 @@ void get_lastPosition()
   lastPos[0] += STEPS_TO_DISPLACEMENT(STEPS_TO_TAKE[0] - REMAINING_X_STEPS, ROTATION_DIRECTION[0]);
   lastPos[1] += STEPS_TO_DISPLACEMENT(STEPS_TO_TAKE[1] - REMAINING_Y_STEPS, ROTATION_DIRECTION[1]);
 
-  if ((0 == REMAINING_Y_STEPS) && (0 == REMAINING_X_STEPS))
-  {
-    save_lastPosition();
-  }
+  // if ((0 == REMAINING_Y_STEPS) && (0 == REMAINING_X_STEPS))
+  // {
+  //   save_lastPosition();
+  // }
 }
 
 void save_lastPosition()
